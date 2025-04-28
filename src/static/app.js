@@ -13,27 +13,62 @@ document.addEventListener("DOMContentLoaded", () => {
       // Clear loading message
       activitiesList.innerHTML = "";
 
-      // Populate activities list
+      // Group activities by category
+      const categories = {};
       Object.entries(activities).forEach(([name, details]) => {
-        const activityCard = document.createElement("div");
-        activityCard.className = "activity-card";
+        const category = details.category;
+        if (!categories[category]) {
+          categories[category] = [];
+        }
+        categories[category].push({ name, details });
+      });
 
-        const spotsLeft = details.max_participants - details.participants.length;
+      // Sort categories to move uncategorized to the end
+      const sortedCategories = Object.entries(categories).sort(([a], [b]) => {
+        if (a === null) return 1; // Move uncategorized to the end
+        if (b === null) return -1;
+        return a.localeCompare(b);
+      });
 
-        activityCard.innerHTML = `
-          <h4>${name}</h4>
-          <p>${details.description}</p>
-          <p><strong>Schedule:</strong> ${details.schedule}</p>
-          <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
-        `;
+      // Populate activities list by category
+      sortedCategories.forEach(([category, activities]) => {
+        const categorySection = document.createElement("div");
+        categorySection.className = "category-section";
 
-        activitiesList.appendChild(activityCard);
+        const categoryTitle = document.createElement("h4");
+        categoryTitle.textContent = category ? category : "Other Activities"; // Rename uncategorized
+        categorySection.appendChild(categoryTitle);
 
-        // Add option to select dropdown
-        const option = document.createElement("option");
-        option.value = name;
-        option.textContent = name;
-        activitySelect.appendChild(option);
+        activities.forEach(({ name, details }) => {
+          const activityCard = document.createElement("div");
+          activityCard.className = "activity-card";
+
+          const spotsLeft = details.max_participants - details.participants.length;
+
+          // Generate participants list
+          const participantsList = details.participants.length
+            ? `<ul class='participants-list'>${details.participants.map(participant => `<li>${participant}</li>`).join("")}</ul>`
+            : "<p>No participants yet.</p>";
+
+          activityCard.innerHTML = `
+            <h5>${name}</h5>
+            <p>${details.description}</p>
+            <p><strong>Schedule:</strong> ${details.schedule}</p>
+            <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+            <p><strong>Participants:</strong></p>
+            ${participantsList}
+          `;
+
+          categorySection.appendChild(activityCard);
+
+          // Add option to select dropdown
+          const option = document.createElement("option");
+          option.value = name;
+          option.textContent = name;
+          activitySelect.appendChild(option);
+        });
+
+        activitiesList.appendChild(categorySection);
       });
     } catch (error) {
       activitiesList.innerHTML = "<p>Failed to load activities. Please try again later.</p>";
